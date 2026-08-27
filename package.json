@@ -1,0 +1,28 @@
+{
+  "name": "panelet",
+  "productName": "panelet",
+  "version": "1.0.0",
+  "description": "A hackable desktop widget platform for Windows: clock & todo list included",
+  "main": "main.js",
+  "license": "MIT",
+  "author": "Dennisyu 1104 (https://github.com/Dennisdan1104)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dennisdan1104/panelet.git"
+  },
+  "bugs": "https://github.com/Dennisdan1104/panelet/issues",
+  "homepage": "https://github.com/Dennisdan1104/panelet",
+  "keywords": [
+    "electron",
+    "desktop",
+    "widgets",
+    "clock",
+    "todo"
+  ],
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

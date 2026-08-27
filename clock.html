@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="card">
+    <div class="clock-body">
+      <header class="clock-head">
+        <span class="clock-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>
+          </svg>
+          <span id="modeLabel">时钟</span>
+        </span>
+        <span class="modeseg">
+          <button class="on" data-mode="clock">时钟</button><button data-mode="pomo">番茄钟</button>
+        </span>
+      </header>
+
+      <!-- ============ 时钟视图 ============ -->
+      <div class="view" id="viewClock">
+        <div class="time-row">
+          <div class="time-line">
+            <div class="digits hh">--</div>
+            <div class="digits colon">:</div>
+            <div class="digits mm">--</div>
+            <div class="sec-col">
+              <span class="ss">--</span>
+              <span class="ampm">上午</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="clock-foot">
+          <span class="weekday"></span>
+          <div class="daybar"><i></i></div>
+          <span class="pct"></span>
+        </footer>
+      </div>
+
+      <!-- ============ 番茄钟视图 ============ -->
+      <div class="view" id="viewPomo" hidden>
+        <div class="pomo-stage">
+          <div class="ring-wrap">
+            <svg width="124" height="124" viewBox="0 0 120 120">
+              <circle class="ring-track" cx="60" cy="60" r="52"/>
+              <circle class="ring-prog" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="ring-mid">
+              <b id="pmTime">--:--</b>
+              <i id="pmPhase"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="pomo-bar">
+          <button class="pm-reset" id="pmReset" title="重置" hidden>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9"/><path d="M3 4v5h5"/></svg>
+          </button>
+          <button class="pm-start" id="pmStart">开始</button>
+          <span class="pm-bar-pad" aria-hidden="true"></span>
+        </div>
+
+        <button class="pm-drawer-toggle" id="pmChev" hidden title="本次专注任务">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+
+        <div class="pomo-extra" id="pmExtra">
+          <div id="exPick">
+            <div class="ex-hint" id="exHint">从待办清单选择本次专注的事</div>
+            <div class="ex-list" id="exList"></div>
+            <div class="ex-add">
+              <input id="exNew" type="text" placeholder="或写一件临时的新任务…" maxlength="60" />
+              <button id="exCommit">完成</button>
+            </div>
+          </div>
+          <div id="exSess" hidden>
+            <div class="ex-head"><span>专注清单</span><em id="exCount"></em></div>
+            <div class="ex-list" id="exList2"></div>
+          </div>
+        </div>
+
+        <div class="picker" id="pmPicker">
+          <span class="band"></span>
+          <div class="col" data-wheel="HT"></div>
+          <div class="col" data-wheel="HO"></div>
+          <span class="unit">时</span>
+          <div class="col" data-wheel="MT"></div>
+          <div class="col" data-wheel="MO"></div>
+          <span class="unit">分</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="settings.js"></script>
+  <script src="hitcorner.js"></script>
+  <script src="clock.js"></script>
+</body>
+</html>

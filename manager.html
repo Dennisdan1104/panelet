@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="p-page">
+  <div class="m-dragbar"></div>
+  <div class="m-winbtns">
+    <button id="minBtn" class="m-ctl min" title="最小化">
+      <svg viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 5h7"/></svg>
+    </button>
+    <button id="closeBtn" class="m-ctl cls" title="关闭控制中心">
+      <svg viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg>
+    </button>
+  </div>
+
+  <div class="m-root">
+    <aside class="m-side">
+      <div class="m-brand">
+        <span class="logo">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><rect x="2" y="2" width="20" height="20" rx="5.5"/><g stroke="#2b2b30" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M7.5 12.4l3 3 6-6.5"/></g></svg>
+        </span>
+        <b>panelet</b>
+      </div>
+      <nav id="mList" class="m-navwidgets"></nav>
+      <div class="m-fixed">
+        <nav id="mFixed"></nav>
+        <div class="m-foot">桌面小组件平台 v1.1</div>
+      </div>
+    </aside>
+
+    <main class="m-main" id="mDetail"></main>
+  </div>
+
+  <script src="settings.js"></script>
+  <script src="manager.js"></script>
+</body>
+</html>

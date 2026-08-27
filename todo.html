@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="card">
+    <div class="todo-body">
+      <header class="todo-head">
+        <div class="todo-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff9f0a">
+            <rect x="2" y="2" width="20" height="20" rx="5.5"/>
+            <g stroke="#1c1c20" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none">
+              <path d="M7.5 12.4l3 3 6-6.5"/>
+            </g>
+          </svg>
+          <h1>提醒事项</h1>
+        </div>
+        <div class="todo-count"><b id="count">0</b><span>待办</span></div>
+      </header>
+
+      <div class="add-row">
+        <button class="add-btn" title="添加" tabindex="-1">
+          <svg width="11" height="11" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1.5v9M1.5 6h9"/></svg>
+        </button>
+        <input id="new" type="text" placeholder="添加事项，回车保存…" maxlength="80" />
+      </div>
+
+      <ul id="list"></ul>
+
+      <footer class="todo-foot">
+        <button id="clear">清除已完成</button>
+        <span class="total" id="total"></span>
+      </footer>
+    </div>
+  </div>
+  <script src="settings.js"></script>
+  <script src="hitcorner.js"></script>
+  <script src="todo.js"></script>
+</body>
+</html>
