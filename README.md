@@ -3,8 +3,9 @@
 [中文文档](README.zh-CN.md)
 
 An extensible desktop widget platform for Windows, built with Electron. Ships with a
-**clock** (with pomodoro timer) and a **todo list**, plus a control center for
-toggling, scaling and theming every widget.
+**clock** (with pomodoro timer), a **todo list** and a **calendar** (with a per-day
+todo & pomodoro review), plus a control center for toggling, scaling and theming
+every widget.
 
 ## Features
 
@@ -37,10 +38,17 @@ npm start
 On Windows, run `setup-shortcut.ps1` to create a desktop shortcut,
 or just double-click `start.bat`.
 
+## Known Issues
+
+- On some GPUs/drivers, the transparent cards may occasionally render **white
+  slivers around their corners**; **clicking the affected card** most likely
+  restores it instantly. The control center uses an opaque window by default
+  precisely to avoid this rendering defect.
+
 ## Visual Self-Test
 
 ```bash
-electron . --selftest            # capture three screenshots for visual regression
+electron . --selftest            # capture one screenshot per widget + control center
 electron . --selftest --interact # assert heights across expand/collapse sequences
 ```
 

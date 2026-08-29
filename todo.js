@@ -1,6 +1,12 @@
 'use strict';
 const KEY = 'todos.v1';
+const LOGKEY = 'todo.log.v1';
 const DEMO = new URLSearchParams(location.search).has('demo');
+
+const todayStr = () => {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+};
 
 const listEl = document.getElementById('list');
 const newEl = document.getElementById('new');
@@ -21,8 +27,30 @@ if (DEMO) {
   try { todos = JSON.parse(localStorage.getItem(KEY)) || []; } catch { todos = []; }
 }
 
+/* append-only journal of completions, keyed by day (YYYY-MM-DD) so the
+   calendar can replay a day even after 清除已完成 prunes the live list */
+let todoLog = [];
+if (!DEMO) { try { todoLog = JSON.parse(localStorage.getItem(LOGKEY)) || []; } catch { todoLog = []; } }
+
 function save() {
-  if (!DEMO) { try { localStorage.setItem(KEY, JSON.stringify(todos)); } catch {} }
+  if (DEMO) return;
+  try { localStorage.setItem(KEY, JSON.stringify(todos)); } catch {}
+  try { localStorage.setItem(LOGKEY, JSON.stringify(todoLog)); } catch {}
+  try {
+    window.widget.pushDaylog('todo', {
+      live: todos.map(t => ({ text: t.text, done: !!t.done, created: t.created || null })),
+      log: todoLog,
+    });
+  } catch {}
+}
+
+/* keep "completed today" entries in sync when a task is toggled back */
+function logSetDone(text, done) {
+  if (DEMO) return;
+  const d = todayStr();
+  todoLog = todoLog.filter(e => !(e && e.d === d && e.text === text));
+  if (done) todoLog.push({ d, text });
+  if (todoLog.length > 400) todoLog = todoLog.slice(-400);
 }
 
 /* publish pending items so the clock's session picker can offer them */
@@ -32,10 +60,16 @@ function pushSnapshot() {
 window.widget.onTodosRemote(msg => {
   if (msg.op === 'setdone') {
     const t = todos.find(x => String(x.id) === String(msg.id));
-    if (t && t.done !== msg.done) { t.done = msg.done; save(); render(); }
+    if (t && t.done !== msg.done) {
+      t.done = msg.done;
+      if (t.done) { t.doneAt = todayStr(); logSetDone(t.text, true); }
+      else { delete t.doneAt; logSetDone(t.text, false); }
+      save(); render();
+    }
   } else if (msg.op === 'adddone') {
     if (!todos.some(x => x.key === msg.key)) {
-      todos.push({ id: Date.now(), key: msg.key, text: msg.text, done: true });
+      todos.push({ id: Date.now(), key: msg.key, text: msg.text, done: true, created: todayStr(), doneAt: todayStr() });
+      logSetDone(msg.text, true);
       save(); render();
     }
   } else if (msg.op === 'removebykey') {
@@ -78,7 +112,12 @@ function row(t, i) {
   chk.className = 'chk';
   chk.title = '标记完成';
   chk.innerHTML = '<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.8 6.4l2.7 2.8L10.2 3"/></svg>';
-  chk.onclick = () => { t.done = !t.done; save(); render(); };
+  chk.onclick = () => {
+    t.done = !t.done;
+    if (t.done) { t.doneAt = todayStr(); logSetDone(t.text, true); }
+    else { delete t.doneAt; logSetDone(t.text, false); }
+    save(); render();
+  };
 
   const txt = document.createElement('span');
   txt.className = 'txt';
@@ -118,7 +157,7 @@ function row(t, i) {
 function add() {
   const v = newEl.value.trim();
   if (!v) return;
-  todos.push({ id: Date.now(), text: v, done: false });
+  todos.push({ id: Date.now(), text: v, done: false, created: todayStr() });
   newEl.value = '';
   save();
   render();

@@ -138,8 +138,10 @@ function pageBehavior() {
   page.appendChild(head);
 
   const g1 = h(`<div class="p-sec"><h3>窗口</h3><div class="p-group"></div></div>`);
-  g1.querySelector('.p-group')
-    .appendChild(rowSwitch({ key: 'onTop', title: '置顶显示', sub: '所有卡片保持在其他窗口上方' }));
+  const g1rows = g1.querySelector('.p-group');
+  g1rows.appendChild(rowSwitch({ key: 'onTop', title: '置顶显示', sub: '所有卡片保持在其他窗口上方' }));
+  g1rows.appendChild(rowSwitch({ key: 'mgrRound', title: '圆角面板',
+    sub: '透明窗口 CSS 圆角；若你的设备没有白边渲染问题再开' }));
   page.appendChild(g1);
 
   page.appendChild(h(`
@@ -217,6 +219,7 @@ function renderDetail() {
 /* keep every visible control in sync with broadcast settings */
 function sync() {
   if (!S) return;
+  document.body.classList.toggle('round', Boolean(S.mgrRound));
   listEl.querySelectorAll('[data-dot]').forEach(d => {
     d.classList.toggle('off', !S[`w_${d.dataset.dot}`]);
   });
@@ -251,6 +254,7 @@ detailEl.addEventListener('input', e => {
 
 document.getElementById('closeBtn').onclick = () => window.widget.closePanel();
 document.getElementById('minBtn').onclick = () => window.widget.minimizePanel();
+document.getElementById('showAllBtn').onclick = () => window.widget.showAllWidgets();
 
 // Wait for BOTH payloads before touching the DOM: detail pages read
 // settings while rendering, so building earlier races null into it.

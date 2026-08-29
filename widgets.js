@@ -46,11 +46,24 @@ const REGISTRY = [
     max: 160,
     demoSeed: true,
   },
+  {
+    id: 'calendar',
+    name: '日历',
+    desc: '日月年切换 · 每日待办与番茄回顾',
+    tint: '#ff453a',
+    page: 'calendar.html',
+    w: 372,
+    h: 382,
+    min: 80,
+    max: 150,
+    demoSeed: true,
+  },
 ];
 
 const MANAGER_ICONS = {
   clock: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>',
   todo: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="5"/><g stroke="#2b2b30" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M8 12.5l2.7 2.7 5.6-6"/></g></svg>',
+  calendar: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="4"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/></svg>',
   palette: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21a9 9 0 110-18c4.97 0 9 3.58 9 8 0 2.5-2 4-4.5 4H15a2 2 0 00-1.5 3.33c.6.68.13 1.67-.83 1.67H12z"/><circle cx="7.5" cy="11.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="11" cy="7.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.8" cy="8.6" r="1.3" fill="currentColor" stroke="none"/></svg>',
   gear: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h.01a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v.01a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
 };

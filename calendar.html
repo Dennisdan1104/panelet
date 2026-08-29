@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="card">
+    <div class="cal-body">
+      <header class="cal-head">
+        <span class="cal-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3.5" y="5" width="17" height="15.5" rx="4"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/>
+          </svg>
+          <span id="calMode">日历</span>
+        </span>
+        <span class="modeseg" id="calSeg">
+          <button class="on" data-v="days">日</button><button data-v="months">月</button><button data-v="years">年</button>
+        </span>
+      </header>
+
+      <div class="cal-nav">
+        <button id="navPrev" title="上一个">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5l-7 7 7 7"/></svg>
+        </button>
+        <b id="navTitle">——</b>
+        <button id="navNext" title="下一个">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- 日视图：月历网格 + 选中日放大详情 -->
+      <div class="view" id="viewDays">
+        <div class="cal-week" id="calWeek"></div>
+        <div class="cal-grid" id="calGrid"></div>
+
+        <div class="cal-detail" id="calDetail" hidden></div>
+      </div>
+
+      <!-- 月视图：当年 12 个迷你月 -->
+      <div class="view" id="viewMonths" hidden>
+        <div class="cal-year" id="calYear"></div>
+      </div>
+
+      <!-- 年视图：有记录的年份一览 -->
+      <div class="view" id="viewYears" hidden>
+        <div class="cal-years" id="calYears"></div>
+      </div>
+    </div>
+  </div>
+  <script src="settings.js"></script>
+  <script src="hitcorner.js"></script>
+  <script src="calendar.js"></script>
+</body>
+</html>

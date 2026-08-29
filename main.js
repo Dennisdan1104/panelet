@@ -20,6 +20,7 @@ let layout = readJSON('layout-v3.json') || {};
 const DEFAULTS = {
   style: 'solid',                      // solid 凝实 | frost 通透 | dark 深色 | cream 暖沙 | ink 墨玉
   onTop: false,
+  mgrRound: false,                     // 控制中心圆角（透明窗口，设备有白边渲染缺陷时别开）
 };
 for (const r of REGISTRY) {
   DEFAULTS[`w_${r.id}`] = true;
@@ -52,12 +53,22 @@ function overlapsScreen(x, y, w, h) {
 function defaultPos() {
   const wa = screen.getPrimaryDisplay().workArea;
   const out = {};
+  let colRight = wa.x + wa.width - 56;   // 当前列共享的右缘
+  let colW = 0;                          // 当前列中最宽的卡片
   let y = wa.y + 72;
   for (const r of REGISTRY) {
     const s = clampScale(r);
     const W = Math.round(r.w * s / 100), H = Math.round(r.h * s / 100);
-    out[r.id] = { x: wa.x + wa.width - W - 56, y };
-    y += H + 20;
+    if (y + H > wa.y + wa.height - 8) {  // 这一列放不下 → 左边另起一列
+      colRight -= colW + 24;
+      colW = 0;
+      y = wa.y + 72;
+    }
+    // 卡片比工作区还高时贴顶放置，至少露出上半截可拖动
+    const py = Math.min(y, Math.max(wa.y, wa.y + wa.height - H - 8));
+    out[r.id] = { x: colRight - W, y: py };
+    colW = Math.max(colW, W);
+    y = py + H + 20;
   }
   return out;
 }
@@ -122,6 +133,9 @@ function createCard(id) {
     query.demo = '1'; query.pomo = '1';
     if (process.env.POMO_PICK) query.pick = '1';
     if (process.env.POMO_DRAWER) query.drawer = process.env.POMO_DRAWER;
+    if (process.env.POMO_IDLE) query.idle = '1';
+    if (process.env.CAL_VIEW && id === 'calendar') query.view = process.env.CAL_VIEW;
+    if (process.env.CAL_FUTURE && id === 'calendar') query.future = '1';
   }
   attachDebug(win);
   win.loadFile(r.page, { query });
@@ -165,13 +179,39 @@ function trackBaseHeight(id, h) { baseHTarget.set(id, h); }
 
 let managerWin = null;
 
+/* ── 组件对账：设置里开着的组件必须真实出现在桌面上 ──
+   修复"退出中断弄丢卡片窗口但开关还亮着"的问题：
+   窗口没了 → 重建；位置跑到屏外 → 拉回默认位；只是隐藏 → 直接显示。
+   每次 showManager()（冷启动问候、双击快捷方式）都会执行。 */
+function reconcileWidgets() {
+  for (const r of REGISTRY) {
+    if (!settings[`w_${r.id}`]) continue;
+    let win = windows[r.id];
+    if (!win || win.isDestroyed()) { createCard(r.id); continue; }
+    const s = clampScale(r);
+    const W = Math.round(r.w * s / 100);
+    const H = Math.round(r.h * s / 100) + Math.max(0, extraAcc.get(r.id) || 0);
+    const b = win.getBounds();
+    if (!overlapsScreen(b.x, b.y, Math.max(W, b.width), Math.max(H, b.height))) {
+      const p = defaultPos()[r.id];
+      win.setBounds({ x: p.x, y: p.y, width: W, height: H });
+      layout[r.id] = win.getBounds(); writeJSON('layout-v3.json', layout);
+    }
+    if (!win.isVisible()) win.showInactive();
+  }
+}
+
 function showManager() {
+  reconcileWidgets();
   if (managerWin && !managerWin.isDestroyed()) {
     managerWin.show(); managerWin.focus(); return;
   }
   // Opaque frameless window with NATIVE DWM rounding + shadow: immune to
   // the intermittent white-frame bug that hits transparent windows here.
+  // mgrRound opt-in switches to a transparent window rounded via CSS —
+  // user's call if their device doesn't suffer from the white-frame bug.
   const wa = screen.getPrimaryDisplay().workArea;
+  const round = Boolean(settings.mgrRound);
   const PW = Math.min(760, wa.width - 120);
   const PH = Math.min(566, wa.height - 90);
   managerWin = new BrowserWindow({
@@ -181,13 +221,13 @@ function showManager() {
     height: PH,
     show: false,
     frame: false,
-    transparent: false,
+    transparent: round,
     resizable: false,
     minimizable: true,
     maximizable: false,
     fullscreenable: false,
-    hasShadow: true,
-    backgroundColor: '#1b1b21',
+    hasShadow: !round,
+    backgroundColor: round ? '#00000000' : '#1b1b21',
     title: 'panelet · 控制中心',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -225,6 +265,7 @@ ipcMain.on('settings-reset', () => {
   settings = { ...DEFAULTS };
   saveSettings();
   applyGlobal('style');
+  applyGlobal('mgrRound');
   for (const r of REGISTRY) {
     applyGlobal(`w_${r.id}`);
     applyGlobal(`scale_${r.id}`);
@@ -237,6 +278,15 @@ ipcMain.on('settings-reset', () => {
 ipcMain.on('panel-close', () => { if (managerWin && !managerWin.isDestroyed()) managerWin.hide(); });
 ipcMain.on('panel-minimize', () => { if (managerWin && !managerWin.isDestroyed()) managerWin.minimize(); });
 ipcMain.on('quit-app', () => app.quit());
+
+/* 一键把所有组件叫回来：覆盖红键关闭(开关开)与黄键收起(窗口隐藏) */
+function showAllWidgets() {
+  for (const id of Object.keys(CARDS)) settings[`w_${id}`] = true;
+  saveSettings();
+  broadcast('settings', settings);
+  for (const id of Object.keys(CARDS)) applyGlobal(`w_${id}`);
+}
+ipcMain.on('widgets-show-all', showAllWidgets);
 
 /* ---- session-todo bridge (clock ⇄ todo widget) ---- */
 let latestPending = null;                       // [{id,text}] pushed by todo renderer
@@ -255,6 +305,19 @@ function sendTodoRemote(msg) {
 ipcMain.on('todo-setdone', (_e, m) => sendTodoRemote({ op: 'setdone', ...m }));
 ipcMain.on('todo-adddone', (_e, m) => sendTodoRemote({ op: 'adddone', ...m }));
 ipcMain.on('todo-removebykey', (_e, m) => sendTodoRemote({ op: 'removebykey', ...m }));
+
+/* ---- daylog: dated journal feeding the calendar (source of truth is
+   each widget's localStorage; this cache exists so the calendar can read
+   it even while those windows are hidden, and survives restarts) ---- */
+let daylog = readJSON('daylog-v1.json') || { todo: { live: [], log: [] }, pomo: { log: [] } };
+
+ipcMain.on('daylog-push', (_e, { kind, data }) => {
+  if (kind !== 'todo' && kind !== 'pomo') return;
+  daylog[kind] = data;
+  writeJSON('daylog-v1.json', daylog);
+  broadcast('daylog', daylog);
+});
+ipcMain.handle('daylog:get', () => daylog);
 
 ipcMain.on('widget-resetpos', (e, id) => {
   const win = windows[id];
@@ -278,6 +341,12 @@ function applyGlobal(k) {
       const w = windows[id];
       if (w && !w.isDestroyed()) w.setAlwaysOnTop(Boolean(settings.onTop), 'floating');
     }
+  } else if (k === 'mgrRound') {
+    // 透明度只能在建窗时定，切换后关掉旧控制中心立刻重建
+    if (managerWin && !managerWin.isDestroyed()) {
+      managerWin.close();
+      showManager();
+    }
   }
 }
 
@@ -300,7 +369,7 @@ function openMenuFor(id, win) {
         broadcast('settings', settings); applyGlobal(`w_${id}`);
       } },
     { type: 'separator' },
-    { label: '全部重新显示', click: () => Object.keys(CARDS).forEach(n => { settings[`w_${n}`] = true; applyGlobal(`w_${n}`); }) },
+    { label: '全部重新显示', click: showAllWidgets },
     { label: '退出小组件', click: () => app.quit() },
   ]).popup({ window: win });
 }
@@ -353,7 +422,7 @@ ipcMain.on('card-resize', (e, extra) => {
 });
 
 if (!SELFTEST && !app.requestSingleInstanceLock()) {
-  app.quit();
+  app.exit(0);                       // 已有实例在跑：立即退出，second-instance 会弹控制中心
 } else {
   app.on('second-instance', showManager);
 
@@ -361,8 +430,7 @@ if (!SELFTEST && !app.requestSingleInstanceLock()) {
     createCard(REGISTRY[0].id);
 
     if (SELFTEST) {
-      const secondId = REGISTRY[1] ? REGISTRY[1].id : REGISTRY[0].id;
-      createCard(secondId);
+      for (const r of REGISTRY.slice(1)) if (r.demoSeed) createCard(r.id);
       await Promise.all(Object.keys(windows).map(n =>
         new Promise(r => windows[n].once('ready-to-show', r))));
 
@@ -385,6 +453,26 @@ if (!SELFTEST && !app.requestSingleInstanceLock()) {
         await js('setStage("picking")'); await sleep(800); chk('reopen-picker', base + 124);
         await js('setStage("running")'); await sleep(800); chk('reconfirm-run', base + 26);
         await js('wipeSession(); setStage("idle")'); await sleep(800); chk('final=base', base);
+
+        /* ── 日历：详情开合断言（demo 模式已预选丰富的一天） ── */
+        const cw = windows.calendar;
+        if (cw) {
+          const cj = s => cw.webContents.executeJavaScript(s);
+          const HC = () => cw.getBounds().height;
+          const b2 = baseHTarget.get('calendar');
+          const chkC = (label, ok, extra) => lines.push(
+            `${ok ? 'PASS' : 'FAIL'} ${label}: h=${HC()} base=${b2}${extra ? ' ' + extra : ''}`);
+          await sleep(1200);                       // demo 详情已展开
+          const openH = HC();
+          chkC('cal-detail-open', openH > b2 + 40, `open=${openH}`);
+          await cj('selKey=null; renderAll()'); await sleep(900);
+          chkC('cal-detail-closed', HC() === b2, `h=${HC()} want=${b2}`);
+          await cj('selKey=todayKey(); renderAll()'); await sleep(900);
+          chkC('cal-detail-reopen', HC() > b2 + 20, `h=${HC()}`);
+          await cj('selKey=null; renderAll()'); await sleep(900);
+          chkC('cal-final=base', HC() === b2, `h=${HC()} want=${b2}`);
+        }
+
         fs.appendFileSync(path.join(__dirname, 'selftest.log'),
           'INTERACT\n' + lines.join('\n') + '\n');
         app.exit(0);
@@ -416,11 +504,8 @@ if (!SELFTEST && !app.requestSingleInstanceLock()) {
     for (let i = 1; i < REGISTRY.length; i++) {
       setTimeout(() => createCard(REGISTRY[i].id), 160 * i);
     }
-    // Control center greets on very first run.
-    if (!fs.existsSync(path.join(userDir(), '.seen'))) {
-      setTimeout(showManager, 600);
-      writeJSON('.seen', { at: Date.now() });
-    }
+    // 双击快捷方式即弹出控制中心；应用已在运行时由 second-instance 分支接管
+    setTimeout(showManager, 600);
   });
 }
 

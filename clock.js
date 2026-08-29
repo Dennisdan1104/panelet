@@ -2,6 +2,12 @@
 const $ = s => document.querySelector(s);
 const pad = n => String(n).padStart(2, '0');
 const WEEK = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+const DEMO = new URLSearchParams(location.search).has('demo');
+
+const todayStr = () => {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+};
 
 /* ==================== 时钟 ==================== */
 const hhEl = $('.hh'), mmEl = $('.mm'), ssEl = $('.ss'),
@@ -55,6 +61,7 @@ const CIRC = 2 * Math.PI * 52;
 const pmTime = $('#pmTime'), pmPhase = $('#pmPhase'),
       progEl = document.querySelector('.ring-prog'),
       startBtn = $('#pmStart'), resetBtn = $('#pmReset'),
+      padEl = document.querySelector('.pm-bar-pad'),
       pickerEl = $('#pmPicker'), pomoView = $('#viewPomo');
 
 progEl.style.strokeDasharray = CIRC;
@@ -62,6 +69,7 @@ progEl.style.strokeDashoffset = CIRC; // 初始为空环
 
 let stage = 'idle';          // idle | picking | running | paused | done
 let totalSecs = 0, remainSecs = 0, endAt = 0;
+let sessStartedAt = 0;       // wall-clock start of the running round
 
 function setStage(s) {
   const was = stage;
@@ -69,6 +77,7 @@ function setStage(s) {
   pickerEl.classList.toggle('open', s === 'picking');
   pomoView.classList.toggle('picking', s === 'picking');
   resetBtn.hidden = !(s === 'running' || s === 'paused');
+  padEl.hidden = resetBtn.hidden;              // 占位块与重来按钮同进退，开始按钮才能真居中
   switch (s) {
     case 'idle':      startBtn.textContent = '开始'; pmPhase.textContent = ''; break;
     case 'picking':   startBtn.textContent = '确认'; break;
@@ -185,6 +194,7 @@ startBtn.onclick = () => {
       try { localStorage.setItem('pomo.last', String(sec)); } catch {}
       totalSecs = remainSecs = sec;
       endAt = Date.now() + sec * 1000;
+      sessStartedAt = Date.now();
       setStage('running'); startBtn.disabled = false;
       renderRing();
       break;
@@ -214,8 +224,28 @@ setInterval(() => {
   if (stage !== 'running') return;
   remainSecs = Math.max(0, Math.round((endAt - Date.now()) / 1000));
   renderRing();
-  if (remainSecs <= 0) { chime(); setStage('done'); }
+  if (remainSecs <= 0) { chime(); recordSession(); setStage('done'); }
 }, 200);
+
+/* 只记录自然走完的会话（手动重置=放弃，不记），供日历回看某一天 */
+function recordSession() {
+  if (DEMO || !totalSecs) return;
+  const end = Date.now();
+  const entry = {
+    d: todayStr(),
+    s: sessStartedAt || end - totalSecs * 1000,
+    e: end,
+    dur: totalSecs,
+    tasks: sess.entries.map(({ text, done }) => ({ text, done })),
+  };
+  try {
+    const arr = JSON.parse(localStorage.getItem('pomo.log.v1')) || [];
+    arr.push(entry);
+    while (arr.length > 400) arr.shift();
+    localStorage.setItem('pomo.log.v1', JSON.stringify(arr));
+    window.widget.pushDaylog('pomo', { log: arr });
+  } catch {}
+}
 
 /* 轻柔提示音 */
 let actx = null;
@@ -437,7 +467,9 @@ document.addEventListener('contextmenu', e => {
 if (new URLSearchParams(location.search).has('demo')) {
   document.querySelector('.modeseg [data-mode="pomo"]').click();
   const P = new URLSearchParams(location.search);
-  if (P.has('pick')) {
+  if (P.has('idle')) {
+    /* 停在未开始态（自检开始按钮居中用） */
+  } else if (P.has('pick')) {
     setStage('picking');
     WHEELS.HT.val = 0; WHEELS.HO.val = 1;
     WHEELS.MT.val = 2; WHEELS.MO.val = 5;

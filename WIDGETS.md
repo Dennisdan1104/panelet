@@ -76,5 +76,8 @@
 
 ## 自检
 
-跑 `electron . --selftest` 会在项目目录生成 `shot-clock.png` /
-`shot-todo.png` / `shot-manager.png` 三张截图用于视觉回归；看完记得删。
+跑 `electron . --selftest` 会给**每个 `demoSeed: true` 的组件 + 控制中心**各生成一张
+`shot-<id>.png` 截图用于视觉回归；看完记得删。交互/演示参数可用环境变量注入：
+`WIDGETS_STYLE=dark` 强制风格、`CAL_VIEW=months|years` 切日历初始视图、
+`POMO_PICK` / `POMO_DRAWER` / `POMO_IDLE` 控制时钟演示态。凡是有纵向伸缩的组件（时钟、日历）
+`--selftest --interact` 会对开合序列做高度断言。
