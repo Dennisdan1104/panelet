@@ -13,6 +13,10 @@ contextBridge.exposeInMainWorld('widget', {
   closePanel: () => ipcRenderer.send('panel-close'),
   minimizePanel: () => ipcRenderer.send('panel-minimize'),
   resetPosition: id => ipcRenderer.send('widget-resetpos', id),
+
+  /* 计时器小窗（toggle 显示/隐藏；关窗由渲染端确认后调用 close） */
+  toggleTimers: () => ipcRenderer.send('timers-toggle'),
+  closeTimers: () => ipcRenderer.send('timers-close'),
   getRegistry: () => ipcRenderer.invoke('registry:get'),
   showAllWidgets: () => ipcRenderer.send('widgets-show-all'),
 

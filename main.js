@@ -275,6 +275,53 @@ ipcMain.on('settings-reset', () => {
   broadcast('settings', settings);
 });
 
+/* ── 计时器窗口：白色普通小窗（非桌面贴靠小组件，不进 REGISTRY）──
+   单例：不存在就创建，已存在就 显示/隐藏 切换。 */
+let timerWin = null;
+
+function createTimerWin(query = {}) {
+  const wa = screen.getPrimaryDisplay().workArea;
+  const W = 320, H = 446;
+  timerWin = new BrowserWindow({
+    x: wa.x + wa.width - W - 96,
+    y: wa.y + Math.max(56, Math.round((wa.height - H) / 2) - 40),
+    width: W,
+    height: H,
+    show: false,
+    frame: false,
+    resizable: false,
+    minimizable: true,
+    maximizable: false,
+    fullscreenable: false,
+    hasShadow: true,
+    backgroundColor: '#f2f2f5',
+    title: 'panelet · 计时器',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      spellcheck: false,
+    },
+  });
+  attachDebug(timerWin);
+  timerWin.loadFile('timer.html', { query });
+  timerWin.once('ready-to-show', () => timerWin.show());
+  timerWin.on('closed', () => { timerWin = null; });
+}
+
+ipcMain.on('timers-toggle', () => {
+  if (timerWin && !timerWin.isDestroyed()) {
+    if (timerWin.isVisible() && timerWin.isFocused()) timerWin.hide();
+    else { timerWin.show(); timerWin.focus(); }
+  } else {
+    createTimerWin();
+  }
+});
+
+ipcMain.on('timers-close', () => {
+  if (timerWin && !timerWin.isDestroyed()) timerWin.close();
+});
+
 ipcMain.on('panel-close', () => { if (managerWin && !managerWin.isDestroyed()) managerWin.hide(); });
 ipcMain.on('panel-minimize', () => { if (managerWin && !managerWin.isDestroyed()) managerWin.minimize(); });
 ipcMain.on('quit-app', () => app.quit());
@@ -445,12 +492,12 @@ if (!SELFTEST && !app.requestSingleInstanceLock()) {
         const base = baseHTarget.get('clock');
         const chk = (label, want) => lines.push(
           `${H() === want ? 'PASS' : 'FAIL'} ${label}: h=${H()} want=${want} base=${base}`);
-        await js('setStage("picking")'); await sleep(800); chk('picker+124', base + 124);
+        await js('setStage("picking")'); await sleep(800); chk('picker+154', base + 154);
         await js('setStage("running")'); await sleep(800); chk('run+26', base + 26);
         await js('sessOpen = true; syncSize()'); await sleep(800); chk('drawer+176', base + 202);
         await js('sessOpen = false; syncSize()'); await sleep(800); chk('drawer-closed', base + 26);
         await js('setStage("idle")'); await sleep(800); chk('idle=base', base);
-        await js('setStage("picking")'); await sleep(800); chk('reopen-picker', base + 124);
+        await js('setStage("picking")'); await sleep(800); chk('reopen-picker', base + 154);
         await js('setStage("running")'); await sleep(800); chk('reconfirm-run', base + 26);
         await js('wipeSession(); setStage("idle")'); await sleep(800); chk('final=base', base);
 
@@ -480,19 +527,25 @@ if (!SELFTEST && !app.requestSingleInstanceLock()) {
       }
 
       await new Promise(r => setTimeout(r, 1000));
+      createTimerWin({ demo: '1' });            // 计时器窗口（演示数据）一并截图
       showManager();
       await new Promise(r => setTimeout(r, 1400));
       const shots = [...Object.keys(windows)];
+      if (timerWin && !timerWin.isDestroyed()) shots.push('timer');
       if (managerWin && !managerWin.isDestroyed()) shots.push('manager');
       for (const name of shots) {
-        const win = name === 'manager' ? managerWin : windows[name];
+        const win = name === 'manager' ? managerWin : name === 'timer' ? timerWin : windows[name];
         if (!win || win.isDestroyed()) continue;
         const img = await win.webContents.capturePage();
         fs.writeFileSync(path.join(__dirname, `shot-${name}.png`), img.toPNG());
       }
       try {
-        const dump = await managerWin.webContents.executeJavaScript(
-          `({list:document.getElementById('mList').outerHTML.slice(0,1200), detail:(document.getElementById('mDetail')||{}).outerHTML?.slice(0,600)})`);
+        const probe = await windows.clock.webContents.executeJavaScript(
+          `JSON.stringify({open:document.getElementById('pmPicker').classList.contains('open'),link:(document.getElementById('pmLink')||{outerHTML:'MISSING'}).outerHTML.slice(0,140),vis:document.getElementById('pmLink')?(document.getElementById('pmLink').offsetHeight>0):false})`);
+        fs.appendFileSync(path.join(__dirname, 'selftest.log'), 'PKPROBE ' + probe + '\n');
+      } catch (err) { fs.appendFileSync(path.join(__dirname, 'selftest.log'), 'PKPROBE_FAIL ' + err + '\n'); }
+      try {
+        const dump = await managerWin.webContents.executeJavaScript(          `({list:document.getElementById('mList').outerHTML.slice(0,1200), detail:(document.getElementById('mDetail')||{}).outerHTML?.slice(0,600)})`);
         fs.appendFileSync(path.join(__dirname, 'selftest.log'), 'DUMP ' + JSON.stringify(dump, null, 1) + '\n');
       } catch (err) {
         fs.appendFileSync(path.join(__dirname, 'selftest.log'), 'DUMPFAIL ' + err + '\n');

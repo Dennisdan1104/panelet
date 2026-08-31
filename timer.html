@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="p-page">
+  <div class="t-root">
+    <div class="t-dragbar"></div>
+
+    <header class="t-head">
+      <h1>今天的计时器</h1>
+      <div class="t-acts">
+        <button id="tAdd" title="新建计时器">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button id="tResetAll" title="全部重置">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9"/><path d="M3 4v5h5"/></svg>
+        </button>
+        <button class="t-close" id="tClose" title="关闭">
+          <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 1l8 8M9 1l-8 8"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="t-scroll">
+      <div class="t-list" id="tList"></div>
+      <div class="t-empty" id="tEmpty" hidden>点 ＋ 给第一件事设个时间额度</div>
+
+      <!-- 新建：底部展开的内联表单 -->
+      <div class="t-form" id="tForm" hidden>
+        <div class="f-name">
+          <input id="fName" type="text" placeholder="比如：玩游戏 / 写作业" maxlength="24" />
+          <button id="fPick" title="从提醒事项选">从提醒事项选</button>
+        </div>
+        <div class="f-quick" id="fQuick">
+          <input id="fMin" type="number" min="1" max="720" placeholder="时长（分钟）" />
+          <button data-min="15">15m</button>
+          <button data-min="30">30m</button>
+          <button data-min="60">1h</button>
+          <button data-min="120">2h</button>
+        </div>
+        <div class="f-segs">
+          <div class="seg" id="fMode">
+            <button class="on" data-v="limit">限额 · 玩</button>
+            <button data-v="goal">目标 · 学习</button>
+          </div>
+          <div class="seg" id="fCycle">
+            <button class="on" data-v="day">按天</button>
+            <button data-v="week">按周</button>
+            <button data-v="manual">手动</button>
+          </div>
+        </div>
+        <button class="f-ok" id="fOk">建好</button>
+      </div>
+    </div>
+
+    <footer class="t-foot" id="tFoot" hidden></footer>
+
+    <!-- 通用弹层：行菜单 / 时长编辑 / 周期切换 / 待办选择 -->
+    <div class="t-pop" id="tPop" hidden></div>
+
+    <!-- 关窗保护 -->
+    <div class="t-dialog" id="tDialog" hidden>
+      <div class="dbox">
+        <p><b id="dlgName"></b> 还在计时中</p>
+        <div class="drow">
+          <button id="dlgKeep">继续计时并关闭</button>
+          <button id="dlgStop">停下并结算</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="settings.js"></script>
+  <script src="timer.js"></script>
+</body>
+</html>

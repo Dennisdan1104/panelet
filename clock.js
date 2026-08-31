@@ -87,6 +87,8 @@ function setStage(s) {
   }
   if (s === 'running' && was === 'picking') wipeSession();   // 新一轮：清掉旧会话
   if (s === 'done') wipeSession();                            // 时间到即焚
+  if (s === 'running') { pauseLinkedTimer(); writePomoActive(true); }
+  else writePomoActive(false);                                // 番茄钟标记随运行状态进出
   syncSize();
 }
 
@@ -245,7 +247,154 @@ function recordSession() {
     localStorage.setItem('pomo.log.v1', JSON.stringify(arr));
     window.widget.pushDaylog('pomo', { log: arr });
   } catch {}
+  creditLinkedTimer(totalSecs);               // 自然走完 → 计入选中计时器的额度
 }
+
+/* ==================== 计时器联动（timer.v1 与 timer.html 共享） ==================== */
+const TKEY = 'timer.v1';
+
+function loadTimers() {
+  try { return JSON.parse(localStorage.getItem(TKEY)); } catch { return null; }
+}
+function saveTimers(d) { try { localStorage.setItem(TKEY, JSON.stringify(d)); } catch {} }
+
+function tmCycleKey(cycle) {
+  if (cycle === 'manual') return 'manual';
+  const t = new Date();
+  const day = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  if (cycle === 'day') return day;
+  t.setHours(0, 0, 0, 0);
+  t.setDate(t.getDate() + 3 - ((t.getDay() + 6) % 7));        // 本周四
+  const w1 = new Date(t.getFullYear(), 0, 4);
+  const wk = 1 + Math.round(((t - w1) / 864e5 - 3 + ((w1.getDay() + 6) % 7)) / 7);
+  return `${t.getFullYear()}-W${wk}`;
+}
+/* 周期对账：读前先跑，避免入口点显示旧周期的值 */
+function reconcileTimers(d) {
+  if (!d || !Array.isArray(d.timers)) return null;
+  let ch = false;
+  for (const t of d.timers) {
+    const k = tmCycleKey(t.cycle);
+    if (t.cycleKey !== k) {
+      t.cycleKey = k; t.usedMs = 0; t.running = false; t.lastStart = null;
+      t.notified = false; ch = true;
+    }
+  }
+  if (ch) saveTimers(d);
+  return d;
+}
+function tmEffMs(t) {
+  return (t.usedMs || 0) + (t.running && t.lastStart ? Date.now() - t.lastStart : 0);
+}
+function pomoLinkId() { try { return Number(localStorage.getItem('pomo.link')) || null; } catch { return null; } }
+
+/* 番茄钟开跑：若所选计时器正在走，先停下结算，避免双倍计数 */
+function pauseLinkedTimer() {
+  const id = pomoLinkId();
+  if (!id) return;
+  const d = reconcileTimers(loadTimers());
+  const t = d && d.timers.find(x => x.id === id);
+  if (t && t.running) {
+    t.usedMs = tmEffMs(t); t.running = false; t.lastStart = null;
+    saveTimers(d);
+  }
+}
+function writePomoActive(on) {
+  try {
+    if (on) {
+      const id = pomoLinkId();
+      if (id) localStorage.setItem('pomo.active', JSON.stringify({ id, endAt }));
+      else localStorage.removeItem('pomo.active');
+    } else localStorage.removeItem('pomo.active');
+  } catch {}
+}
+/* 自然走完的番茄 → 加进所选计时器；达标/归零同步 notified 位防重复提醒 */
+function creditLinkedTimer(sec) {
+  if (DEMO || !sec) return;
+  const id = pomoLinkId();
+  if (!id) return;
+  const d = reconcileTimers(loadTimers());
+  const t = d && d.timers.find(x => x.id === id);
+  if (!t) return;
+  t.usedMs = (t.usedMs || 0) + sec * 1000;
+  if (!t.notified && t.usedMs >= t.budgetMin * 60000) t.notified = true;
+  saveTimers(d);
+}
+
+/* ---- 入口按钮：状态点 + tooltip ---- */
+const tmBtn = $('#tmEntry');
+function refreshTmEntry() {
+  let running = null;
+  if (DEMO) {
+    tmBtn.classList.add('on');
+    tmBtn.title = '学习 · 剩 35:12';
+    return;
+  }
+  const d = reconcileTimers(loadTimers());
+  if (d) running = d.timers.find(t => t.running) || null;
+  tmBtn.classList.toggle('on', !!running);
+  if (running) {
+    const rest = running.budgetMin * 60000 - tmEffMs(running);
+    const p = n => String(n).padStart(2, '0');
+    const s = Math.max(0, Math.floor(rest / 1000));
+    const clock = `${p(Math.floor(s / 60))}:${p(s % 60)}`;
+    tmBtn.title = running.mode === 'limit'
+      ? `${running.name} · 剩 ${clock}`
+      : `${running.name} · 进行中`;
+  } else tmBtn.title = '计时器';
+}
+tmBtn.onclick = () => window.widget.toggleTimers();
+refreshTmEntry();
+setInterval(refreshTmEntry, 1000);
+window.addEventListener('storage', e => { if (e.key === TKEY) refreshTmEntry(); });
+
+/* ---- 拨时长界面：「用来：其他 ›」 ---- */
+const linkBtn = $('#pmLink'), linkName = $('#pmLinkName'), linkList = $('#pmLinkList');
+let linkOpen = false;
+
+function paintLinkName() {
+  const id = pomoLinkId();
+  let nm = '其他';
+  if (id) {
+    const d = reconcileTimers(loadTimers());
+    const t = d && d.timers.find(x => x.id === id);
+    if (t) nm = t.name;
+  }
+  linkName.textContent = nm;
+}
+function renderLinkList() {
+  linkList.innerHTML = '';
+  const mk = (label, id) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    if ((id || null) === pomoLinkId()) b.classList.add('on');
+    b.onclick = e => {
+      e.stopPropagation();
+      try { id ? localStorage.setItem('pomo.link', String(id)) : localStorage.removeItem('pomo.link'); } catch {}
+      paintLinkName();
+      setLinkOpen(false);
+    };
+    linkList.appendChild(b);
+  };
+  mk('其他 · 纯番茄钟', null);
+  if (DEMO) { mk('玩游戏', 1); mk('写作业', 2); }
+  else {
+    const d = reconcileTimers(loadTimers());
+    if (d) for (const t of d.timers) mk(t.name, t.id);
+  }
+}
+function setLinkOpen(v) {
+  linkOpen = v;
+  if (v) renderLinkList();
+  linkList.hidden = !v;
+  linkBtn.classList.toggle('open', v);
+  syncSize();
+}
+linkBtn.onclick = e => { e.stopPropagation(); setLinkOpen(!linkOpen); };
+document.addEventListener('click', e => {
+  if (linkOpen && !e.target.closest('.picker')) setLinkOpen(false);
+});
+paintLinkName();
 
 /* 轻柔提示音 */
 let actx = null;
@@ -284,7 +433,8 @@ let sentExtra = 0;
 function currentExtra() {
   if (clockMode) return 0;                       // 隐藏番茄钟视图时不占高度
   let h = 0;
-  if (stage === 'picking') h += 124;             // 滚轮块
+  if (stage === 'picking') h += 154;             // 滚轮块 + 「用来」栏
+  if (linkOpen) h += 84;                         // 「用来」选择列表
   if (stage === 'running' || stage === 'paused') {
     h += 26;                                     // 下拉箭头条
     if (sessOpen) h += 176;                      // 任务抽屉

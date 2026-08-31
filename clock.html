@@ -62,6 +62,9 @@
           </button>
           <button class="pm-start" id="pmStart">开始</button>
           <span class="pm-bar-pad" aria-hidden="true" hidden></span>
+          <button class="tm-entry" id="tmEntry" title="计时器">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.4 1.6"/><path d="M9.5 2.5h5"/><path d="M12 2.5V6"/></svg>
+          </button>
         </div>
 
         <button class="pm-drawer-toggle" id="pmChev" hidden title="本次专注任务">
@@ -84,13 +87,20 @@
         </div>
 
         <div class="picker" id="pmPicker">
-          <span class="band"></span>
-          <div class="col" data-wheel="HT"></div>
-          <div class="col" data-wheel="HO"></div>
-          <span class="unit">时</span>
-          <div class="col" data-wheel="MT"></div>
-          <div class="col" data-wheel="MO"></div>
-          <span class="unit">分</span>
+          <div class="pk-wheels">
+            <span class="band"></span>
+            <div class="col" data-wheel="HT"></div>
+            <div class="col" data-wheel="HO"></div>
+            <span class="unit">时</span>
+            <div class="col" data-wheel="MT"></div>
+            <div class="col" data-wheel="MO"></div>
+            <span class="unit">分</span>
+          </div>
+          <button class="pk-link" id="pmLink">
+            <span>用来：<b id="pmLinkName">其他</b></span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+          <div class="pk-link-list" id="pmLinkList" hidden></div>
         </div>
       </div>
     </div>
