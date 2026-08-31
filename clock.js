@@ -216,11 +216,24 @@ startBtn.onclick = () => {
   }
 };
 
+/* 中途清空/退出：已过的时间照计入关联计时器，不白干 */
+function creditElapsed() {
+  if (stage !== 'running' && stage !== 'paused') return;
+  const remain = stage === 'running'
+    ? Math.max(0, Math.round((endAt - Date.now()) / 1000))
+    : remainSecs;
+  const elapsed = totalSecs - remain;
+  if (elapsed > 0) creditLinkedTimer(elapsed);
+}
+
 resetBtn.onclick = () => {
+  creditElapsed();                // 先结算已过时间，再清零
   totalSecs = remainSecs = 0;
   wipeSession();
   setStage('idle'); renderRing();
 };
+
+window.addEventListener('beforeunload', creditElapsed);   // 关应用半路也不丢
 
 setInterval(() => {
   if (stage !== 'running') return;
@@ -288,16 +301,15 @@ function tmEffMs(t) {
 }
 function pomoLinkId() { try { return Number(localStorage.getItem('pomo.link')) || null; } catch { return null; } }
 
-/* 番茄钟开跑：若所选计时器正在走，先停下结算，避免双倍计数 */
+/* 番茄钟开跑 = 全系统单通道：停掉所有正在走的计时器并结算，避免双倍计数 */
 function pauseLinkedTimer() {
-  const id = pomoLinkId();
-  if (!id) return;
   const d = reconcileTimers(loadTimers());
-  const t = d && d.timers.find(x => x.id === id);
-  if (t && t.running) {
-    t.usedMs = tmEffMs(t); t.running = false; t.lastStart = null;
-    saveTimers(d);
+  if (!d) return;
+  let ch = false;
+  for (const t of d.timers) {
+    if (t.running) { t.usedMs = tmEffMs(t); t.running = false; t.lastStart = null; ch = true; }
   }
+  if (ch) saveTimers(d);
 }
 function writePomoActive(on) {
   try {

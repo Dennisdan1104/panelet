@@ -4,13 +4,16 @@
 
 An extensible desktop widget platform for Windows, built with Electron. Ships with a
 **clock** (with pomodoro timer), a **todo list** and a **calendar** (with a per-day
-todo & pomodoro review), plus a control center for toggling, scaling and theming
-every widget.
+todo & pomodoro review), plus **time-budget timers** tucked behind the pomodoro view,
+plus a control center for toggling, scaling and theming every widget.
 
 ## Features
 
 - 🕐 Glassmorphism cards: rounded corners, inner shadows, five built-in styles
   (Solid / Frost / Dark / Cream / Ink)
+- ⏱️ Timers: a tiny stopwatch button in the pomodoro view opens a small window of
+  named time budgets (limit / goal) — pause anytime, auto-reset across days,
+  finished pomodoros can be credited into a timer; all data stays local
 - 🧩 Plugin architecture: write one page + one registry line, and window creation,
   scaling and the context menu come for free
 - 🎛️ Control center: per-widget toggle, 70%–180% scale slider, style & font switching
