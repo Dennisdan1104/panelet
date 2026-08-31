@@ -102,6 +102,17 @@
           </button>
           <div class="pk-link-list" id="pmLinkList" hidden></div>
         </div>
+
+        <!-- 清空中断保护：有关联计时器且本轮在走时先问一句 -->
+        <div class="pm-guard" id="pmGuard" hidden>
+          <div class="pm-guard-box">
+            <p><b id="pmGuardName"></b> 还在计时中</p>
+            <div class="pm-guard-row">
+              <button id="pmGuardKeep">继续计时</button>
+              <button id="pmGuardStop">停下并结算</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

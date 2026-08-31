@@ -87,8 +87,12 @@ function setStage(s) {
   }
   if (s === 'running' && was === 'picking') wipeSession();   // 新一轮：清掉旧会话
   if (s === 'done') wipeSession();                            // 时间到即焚
-  if (s === 'running') { pauseLinkedTimer(); writePomoActive(true); }
-  else writePomoActive(false);                                // 番茄钟标记随运行状态进出
+  if (s === 'running') { pomoLive = true; syncLinked(true); writePomoActive(true); }
+  else {
+    if (pomoLive && (s === 'paused' || s === 'done')) syncLinked(false);  // 暂停/时间到：计时器同步停下
+    if (s === 'done' || s === 'idle') { if (pomoLive) syncLinked(false); pomoLive = false; }
+    writePomoActive(false);                                   // 番茄钟标记随运行状态进出
+  }
   syncSize();
 }
 
@@ -216,24 +220,42 @@ startBtn.onclick = () => {
   }
 };
 
-/* 中途清空/退出：已过的时间照计入关联计时器，不白干 */
-function creditElapsed() {
-  if (stage !== 'running' && stage !== 'paused') return;
-  const remain = stage === 'running'
-    ? Math.max(0, Math.round((endAt - Date.now()) / 1000))
-    : remainSecs;
-  const elapsed = totalSecs - remain;
-  if (elapsed > 0) creditLinkedTimer(elapsed);
-}
+/* 中途清空：有关联计时器且本轮在走时，先弹询问（同计时器窗口的关窗保护） */
+const guardEl = $('#pmGuard'), guardName = $('#pmGuardName');
 
-resetBtn.onclick = () => {
-  creditElapsed();                // 先结算已过时间，再清零
+function doReset() {
   totalSecs = remainSecs = 0;
   wipeSession();
   setStage('idle'); renderRing();
+}
+
+resetBtn.onclick = () => {
+  if ((stage === 'running' || stage === 'paused') && pomoLinkId() && !DEMO) {
+    const d = reconcileTimers(loadTimers());
+    const t = d && d.timers.find(x => x.id === pomoLinkId());
+    guardName.textContent = `「${t ? t.name : '计时器'}」`;
+    guardEl.hidden = false;
+    return;
+  }
+  doReset();
 };
 
-window.addEventListener('beforeunload', creditElapsed);   // 关应用半路也不丢
+$('#pmGuardKeep').onclick = () => {    // 继续计时：番茄钟清掉，计时器自己接着走
+  pomoLive = false;                    // 切断跟随，防止 setStage('idle') 把它停了
+  guardEl.hidden = true;
+  doReset();
+};
+$('#pmGuardStop').onclick = () => {    // 停下并结算：已过时间留在计时器里
+  syncLinked(false);
+  pomoLive = false;
+  guardEl.hidden = true;
+  doReset();
+};
+guardEl.onclick = e => { if (e.target === guardEl) guardEl.hidden = true; };
+
+window.addEventListener('beforeunload', () => {   // 关应用：计时器停下，已过时间保留
+  if (pomoLive) syncLinked(false);
+});
 
 setInterval(() => {
   if (stage !== 'running') return;
@@ -260,7 +282,6 @@ function recordSession() {
     localStorage.setItem('pomo.log.v1', JSON.stringify(arr));
     window.widget.pushDaylog('pomo', { log: arr });
   } catch {}
-  creditLinkedTimer(totalSecs);               // 自然走完 → 计入选中计时器的额度
 }
 
 /* ==================== 计时器联动（timer.v1 与 timer.html 共享） ==================== */
@@ -301,13 +322,23 @@ function tmEffMs(t) {
 }
 function pomoLinkId() { try { return Number(localStorage.getItem('pomo.link')) || null; } catch { return null; } }
 
-/* 番茄钟开跑 = 全系统单通道：停掉所有正在走的计时器并结算，避免双倍计数 */
-function pauseLinkedTimer() {
+/* 番茄钟 ↔ 计时器 **实时同步**：被关联的计时器随番茄钟一起走字，
+   计时器窗口里直接看到它「正在计时」；其余计时器一律暂停结算（全系统单通道）。
+   不再是"结束才推送"——计时器本身就是活的，番茄钟只是它的专注视图。 */
+let pomoLive = false;            // 本轮番茄会话是否活着（running / paused 中）
+
+function syncLinked(on) {
+  if (DEMO) return;
+  const id = pomoLinkId();
   const d = reconcileTimers(loadTimers());
   if (!d) return;
   let ch = false;
   for (const t of d.timers) {
-    if (t.running) { t.usedMs = tmEffMs(t); t.running = false; t.lastStart = null; ch = true; }
+    if (on && id && t.id === id) {
+      if (!t.running) { t.running = true; t.lastStart = Date.now(); ch = true; }
+    } else if (t.running) {
+      t.usedMs = tmEffMs(t); t.running = false; t.lastStart = null; ch = true;
+    }
   }
   if (ch) saveTimers(d);
 }
@@ -320,19 +351,6 @@ function writePomoActive(on) {
     } else localStorage.removeItem('pomo.active');
   } catch {}
 }
-/* 自然走完的番茄 → 加进所选计时器；达标/归零同步 notified 位防重复提醒 */
-function creditLinkedTimer(sec) {
-  if (DEMO || !sec) return;
-  const id = pomoLinkId();
-  if (!id) return;
-  const d = reconcileTimers(loadTimers());
-  const t = d && d.timers.find(x => x.id === id);
-  if (!t) return;
-  t.usedMs = (t.usedMs || 0) + sec * 1000;
-  if (!t.notified && t.usedMs >= t.budgetMin * 60000) t.notified = true;
-  saveTimers(d);
-}
-
 /* ---- 入口按钮：状态点 + tooltip ---- */
 const tmBtn = $('#tmEntry');
 function refreshTmEntry() {

@@ -913,3 +913,22 @@ body.style-solid .f-quick button.on {
   color: var(--text); }
 .t-dialog button:hover { filter: brightness(1.07); }
 
+
+/* ---- 番茄钟清空中断保护（与计时器窗口关窗保护同一视觉语言） ---- */
+.pm-guard { position: absolute; inset: 0; z-index: 30; display: grid;
+  place-items: center; background: rgba(0, 0, 0, .18); border-radius: inherit;
+  animation: slidein .2s ease backwards; }
+.pm-guard-box { width: 218px; padding: 15px 14px 12px; border-radius: 10px;
+  background: var(--bg-hi); border: 1px solid var(--stroke);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .28); }
+.pm-guard-box p { font-size: 12.5px; line-height: 1.45; color: var(--text);
+  margin-bottom: 11px; text-align: center; }
+.pm-guard-box b { color: var(--orange); }
+.pm-guard-row { display: flex; flex-direction: column; gap: 6px; }
+.pm-guard-row button { height: 29px; border-radius: 7px; font-size: 12px;
+  font-weight: 600; transition: filter .15s ease; }
+#pmGuardKeep { background: var(--accent); color: #fff;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 38%, transparent); }
+#pmGuardStop { background: var(--wash); border: 1px solid var(--hairline);
+  color: var(--text); }
+.pm-guard-row button:hover { filter: brightness(1.07); }
